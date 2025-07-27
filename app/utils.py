@@ -4,25 +4,30 @@ import cv2
 import numpy as np
 from ultralytics import YOLO
 import json
+import multiprocessing
 
-# Configuration
-model_path = "./models/secretRecipe.pt"
-input_dir  = "./input"
-output_dir = "./output"
-
-# Make sure output dir exists
-os.makedirs(output_dir, exist_ok=True)
-
-# Initialize YOLO model once
-torch_model = YOLO(model_path)
+# --- Configuration ---
+MODEL_PATH = "./models/secretRecipe.pt"
+INPUT_DIR  = "./input"
+OUTPUT_DIR = "./output"
+DPI = 120  # Define DPI as a constant
 
 def process_pdf(pdf_path):
+    """
+    This is the core worker function. It processes a single PDF from its path,
+    extracts the outline, and saves it to a JSON file.
+    """
+    fname = os.path.basename(pdf_path)
+    print(f"Starting: {fname}")
+    
+    # Initialize the model inside the worker for multiprocessing compatibility
+    torch_model = YOLO(MODEL_PATH)
     doc = fitz.open(pdf_path)
     ans = {"title": "", "outline": []}
     
     page_images = []
     for page in doc:
-        pix = page.get_pixmap(dpi=120)
+        pix = page.get_pixmap(dpi=DPI)
         arr = np.frombuffer(pix.samples, dtype=np.uint8).reshape(pix.height, pix.width, pix.n)
         if pix.n == 4:
             image = cv2.cvtColor(arr, cv2.COLOR_RGBA2BGR)
@@ -34,7 +39,7 @@ def process_pdf(pdf_path):
 
     if not page_images:
         doc.close()
-        return ans
+        return f"Skipped (no pages): {fname}"
 
     all_results = torch_model(page_images, conf=0.35, iou=0.8)
 
@@ -43,7 +48,7 @@ def process_pdf(pdf_path):
         page = doc[page_index]
         
         # Create a matrix to convert from pixel coords to PDF point coords
-        mat = fitz.Matrix(72/120, 72/120)
+        mat = fitz.Matrix(72/DPI, 72/DPI)
 
         # Get all words on the page directly from the PDF data
         page_words = page.get_text("words")
@@ -55,10 +60,7 @@ def process_pdf(pdf_path):
             class_name = torch_model.names[yolo_classes[i]]
             text = ""
 
-            # Create a rectangle from YOLO's pixel coordinates
             yolo_pixel_rect = fitz.Rect(*yolo_box)
-            
-            # Transform the pixel rect to the PDF's point coordinate system
             yolo_pdf_rect = yolo_pixel_rect * mat
 
             # Use the transformed rect to find words in the same coordinate system
@@ -95,22 +97,44 @@ def process_pdf(pdf_path):
         ans["outline"] = final_outline
 
     doc.close()
-    return ans
-
-# --- Main loop ---
-for fname in os.listdir(input_dir):
-    if not fname.lower().endswith(".pdf"):
-        continue
-    input_path  = os.path.join(input_dir, fname)
+    
+    # Save the output file
     output_name = os.path.splitext(fname)[0] + ".json"
-    output_path = os.path.join(output_dir, output_name)
-
-    print(f"Processing {input_path} → {output_path}...")
-    result = process_pdf(input_path)
-
+    output_path = os.path.join(OUTPUT_DIR, output_name)
     with open(output_path, "w", encoding="utf-8") as f:
-        json.dump(result, f, indent=2, ensure_ascii=False)
+        json.dump(ans, f, indent=2, ensure_ascii=False)
+        
+    return f"Finished: {fname}"
 
-    print(f"  → done: {output_path}")
+def main():
+    """
+    Finds all PDFs in the input directory and distributes them to a pool of worker processes.
+    """
+    os.makedirs(OUTPUT_DIR, exist_ok=True)
+    
+    # Get a list of all PDF file paths to process
+    pdf_files = [os.path.join(INPUT_DIR, f) for f in os.listdir(INPUT_DIR) if f.lower().endswith(".pdf")]
+    
+    if not pdf_files:
+        print("No PDF files found in the input directory.")
+        return
 
-print("\nAll files processed.")
+    # Use all available CPU cores for processing
+    num_processes = multiprocessing.cpu_count()
+    print(f"Starting processing for {len(pdf_files)} files using {num_processes} cores...")
+
+    # Create a pool of worker processes
+    with multiprocessing.Pool(processes=num_processes) as pool:
+        # map() distributes the list of pdf_files to the process_pdf function
+        # and collects the results.
+        results = pool.map(process_pdf, pdf_files)
+    
+    # Print the status message from each worker
+    for res in results:
+        print(res)
+
+    print("\nAll files processed.")
+
+# This guard is essential for multiprocessing to work correctly
+if __name__ == "__main__":
+    main()
