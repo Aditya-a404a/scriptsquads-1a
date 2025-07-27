@@ -7,7 +7,7 @@ import pytesseract
 import json
 
 # Configuration
-model_path = "./models/yolov11x_best.pt"
+model_path = "./models/yolov11s_best.pt"
 input_dir  = "./input"
 output_dir = "./output"
 
