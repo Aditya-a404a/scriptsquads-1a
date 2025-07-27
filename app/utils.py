@@ -22,7 +22,7 @@ def process_pdf(pdf_path):
     doc = fitz.open(pdf_path)
     ans = {"title": "", "outline": []}
     outline = []
-    dpi = 170 if len(doc) < 5 else 100
+    dpi = 140
 
     for page_index in range(len(doc)):
         page = doc.load_page(page_index)
