@@ -77,7 +77,7 @@ While multiprocessing is a common choice for performance, we avoided it for thes
 | Computer Vision  | OpenCV                    |
 | PDF Processing   | PyMuPDF (fitz)            |
 | Deployment       | Docker (linux/amd64)      |
-
+| Model            | Ultralytics               | 
 ---
 
 ## ⚙️ Setup & Usage
