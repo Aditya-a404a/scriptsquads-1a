@@ -36,7 +36,7 @@ def process_pdf(pdf_path):
         doc.close()
         return ans
 
-    all_results = torch_model(page_images, conf=0.2, iou=0.8)
+    all_results = torch_model(page_images, conf=0.35, iou=0.8)
 
     all_headers = []
     for page_index, results in enumerate(all_results):
