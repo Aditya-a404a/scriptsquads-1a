@@ -39,6 +39,7 @@ Develop a system that programmatically interprets PDF structure and outputs a st
 - Achieved accuracy but was too complex and slow for real-time requirements.
 
 ### Final Phase:  Visual Detection (YOLOv11) and Fitz Mapping (PyMuPDF)
+![Stage 1 Pipeline Diagram](./public/stage1.png)
 - Rendered each PDF page as an image.  
 - Employed a quantized YOLOv11 model to directly detect Section-Header and Title
 - Achieved robust, high-speed, and language-agnostic performance.
