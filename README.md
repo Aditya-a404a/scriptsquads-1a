@@ -38,10 +38,11 @@ Develop a system that programmatically interprets PDF structure and outputs a st
 - Combined visual detection with graph-based hierarchy modeling.  
 - Achieved accuracy but was too complex and slow for real-time requirements.
 
-### Final Phase: Pure Visual Detection (YOLOv11)
+### Final Phase:  Visual Detection (YOLOv11) and Fitz Mapping (PyMuPDF)
 - Rendered each PDF page as an image.  
-- Employed a quantized YOLOv11 model to directly detect Title, H1, H2, and H3.  
+- Employed a quantized YOLOv11 model to directly detect Section-Header and Title
 - Achieved robust, high-speed, and language-agnostic performance.
+- Oonce Section-Header are found we can easily classify them into H1,H2,H3
 
 ---
 
