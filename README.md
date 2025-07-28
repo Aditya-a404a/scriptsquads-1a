@@ -1,92 +1,85 @@
-# 🧾 Adobe Hackathon 2025: Round 1A – Document Outline Extractor
+# Adobe Hackathon 2025: Round 1A – Document Outline Extractor
 
 A high-performance, offline solution to extract structured outlines (Title, H1, H2, H3) from PDF documents. Developed for **Adobe Hackathon 2025: Round 1A – Understand Your Document**.
 
 ---
 
-## 🚀 Challenge
+## Challenge
 
-Build a system that can programmatically understand PDF structure. Given a PDF, extract:
+Develop a system that programmatically interprets PDF structure and outputs a structured JSON file containing:
 
-- **Title**
-- **Headings (H1, H2, H3)**
-- **Their corresponding page numbers**
-
-The output should be a structured **JSON** file.
+- Title  
+- Headings (H1, H2, H3)  
+- Corresponding page numbers  
 
 ---
 
-## ✨ Features
+## Features
 
-- 🎯 **Accurate Heading Detection**: Title, H1, H2, H3 detection using computer vision.
-- ⚡ **High Performance**: Processes 50-page PDFs in **< 10 seconds** on standard CPU.
-- 🛜 **Fully Offline**: Works without internet connectivity.
-- 📦 **Dockerized**: Easy to run anywhere via a container.
-- 🌐 **Multilingual Capable**: Handles documents in multiple languages, including Japanese and other non-Latin scripts.
-
----
-
-## 🧠 Evolution of the Approach
-
-### Phase 1: Rule-Based (PyMuPDF)
-- Relied on font size, boldness, position.
-- ❌ Fragile and inconsistent across sources.
-
-### Phase 2: Classical ML (Random Forest)
-- Trained on DocLayNet with engineered features.
-- ❌ Improved generalization but limited by PyMuPDF block quality.
-
-### Phase 3: Hybrid (YOLO + Graph Network)
-- YOLO for block detection + Graph for hierarchy.
-- ❌ Too complex, slow for real-time constraints.
-
-### ✅ Final Phase: Pure Visual – YOLOv11
-- Rendered PDF pages as images.
-- Used quantized **YOLOv11** to directly detect Title, H1, H2, H3 from visual layout.
-- Robust, fast, multilingual, and accurate.
+- **Accurate Heading Detection**: Utilizes computer vision techniques to identify Title, H1, H2, and H3 elements.  
+- **High Performance**: Capable of processing 50-page PDFs in under 10 seconds on standard CPU hardware.  
+- **Fully Offline**: Operates without any external network dependencies.  
+- **Containerized Deployment**: Provided as a Docker image for consistent runtime environments.  
+- **Multilingual Support**: Compatible with documents in multiple languages, including Japanese and other non-Latin scripts.
 
 ---
 
-## ❌ Why We Don't Use Multiprocessing
+## Evolution of the Approach
 
-While multiprocessing is a common choice for performance, we avoided it for these reasons:
+### Phase 1: Rule-Based Extraction (PyMuPDF)
+- Relied on font size, boldness, and positional heuristics.  
+- Limited robustness across diverse document formats.
 
-### ⚠️ Model Not Thread-Safe
-- Our YOLOv11 model is not thread-safe.
-- Parallel inference within a shared model can lead to **race conditions** and **corrupted outputs**.
+### Phase 2: Classical Machine Learning (Random Forest)
+- Engineered features from DocLayNet annotations.  
+- Improved generalization but constrained by extraction quality from PDF blocks.
 
-### 🧠 High Overhead for Multiple Processes
-- Multiprocessing loads a separate model (~165MB) per process.
-- On systems like M1 or amd64 cloud VMs, this causes:
-  - High **memory usage**
-  - Noticeable **startup latency**
-- These negate the performance benefits for short tasks.
+### Phase 3: Hybrid Model (YOLO + Graph Network)
+- Combined visual detection with graph-based hierarchy modeling.  
+- Achieved accuracy but was too complex and slow for real-time requirements.
 
-### 🏎️ Single-Process Is Enough
-- Sequential pipeline processes 50 pages in **~7–9 seconds**.
-- Simpler, more robust, and meets all performance constraints.
+### Final Phase: Pure Visual Detection (YOLOv11)
+- Rendered each PDF page as an image.  
+- Employed a quantized YOLOv11 model to directly detect Title, H1, H2, and H3.  
+- Achieved robust, high-speed, and language-agnostic performance.
 
 ---
 
-## 🛠️ Tech Stack
+## Rationale Against Multiprocessing
 
-| Component        | Tool/Library              |
-|------------------|---------------------------|
-| Language         | Python 3.11               |
-| Deep Learning    | Torch, ONNX Runtime       |
-| Computer Vision  | OpenCV                    |
-| PDF Processing   | PyMuPDF (fitz)            |
-| Deployment       | Docker (linux/amd64)      |
-| Model            | Ultralytics               | 
+1. **Model Thread Safety**  
+   - The YOLOv11 model is not thread-safe; concurrent inference can lead to race conditions and corrupted outputs.
+
+2. **Resource Overhead**  
+   - Multiprocessing requires loading a separate model instance (~165 MB) per process, resulting in excessive memory consumption and startup latency.
+
+3. **Sufficient Performance**  
+   - A single-process pipeline processes 50 pages in approximately 7–9 seconds, meeting the performance targets with simpler maintenance.
+
 ---
 
-## ⚙️ Setup & Usage
+## Technology Stack
 
-### 🧱 Prerequisites
+| Component        | Tool / Library           |
+|------------------|--------------------------|
+| Language         | Python 3.11              |
+| Deep Learning    | PyTorch, ONNX Runtime    |
+| Computer Vision  | OpenCV                   |
+| PDF Processing   | PyMuPDF (fitz)           |
+| Containerization | Docker (linux/amd64)     |
+| Model Framework  | Ultralytics YOLOv11      |
 
-- Docker installed and running.
+---
 
-### 🔨 Build Docker Image
+## Setup & Usage
 
+### Prerequisites
+- Docker installed and configured on the host machine.
+
+### Building the Docker Image
 ```bash
-docker build --platform linux/amd64 -t adobe-hackathon-2025:round1a .
+docker build --platform linux/amd64 -t adobe-hackathon-2025-round1a .
+docker run --rm \
+  -v $(pwd)/input:/app/input \
+  -v $(pwd)/output:/app/output \
+  adobe-hackathon-2025-round1a
